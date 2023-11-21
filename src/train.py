@@ -16,7 +16,7 @@ from config import config
 def main(config):
 
     # tokenizer
-    tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-large")
 
     # not needed for unconstrained
     # tokenizer.add_special_tokens({'additional_special_tokens': [config['strategy_token', 'ref_token']]})
@@ -25,14 +25,14 @@ def main(config):
     # model
     # TODO: change model to bart-large
     if config['pretrained_path'] is None:
-        model = BartForConditionalGeneration.from_pretrained("facebook/bart-base").to('cuda')
+        model = BartForConditionalGeneration.from_pretrained("facebook/bart-large").to('cuda')
     else:
         model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).to("cuda")
     
     model.train()
     
     # dataset
-    dataset = PositiveDataset("../dataset", phase='train', tokenizer=tokenizer)
+    dataset = PositiveDataset("/workspace/positive_reframe/data", phase='train', tokenizer=tokenizer)
     dataloader = DataLoader(dataset, batch_size=config['batch_size'])
     
     # optimizer
@@ -86,3 +86,6 @@ def main(config):
             model.save_pretrained(f"{config['save_path']}/{config['run_name']}")
 
         batch_bar.close()
+
+if __name__=='__main__':
+    main(config)

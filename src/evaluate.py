@@ -8,11 +8,12 @@ from transformers import BartModel, BartTokenizer, BartForConditionalGeneration,
 from datasets import load_metric
 from dataset import PositiveDataset
 from config import config
+import nltk
 
 
 # tokenizer
 # TODO: adjust tokenizer path to the same as model (bart-large/base...)
-tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
+tokenizer = BartTokenizer.from_pretrained("facebook/bart-large")
 tokenizer.add_special_tokens({'additional_special_tokens': [config['strategy_token'], config['ref_token']]})
 
 # model
@@ -21,10 +22,11 @@ model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).
 model.eval()
 
 # dataset
-dataset = PositiveDataset("../data", phase='test', tokenizer=tokenizer)
+dataset = PositiveDataset("/workspace/positive_reframe/data", phase='test', tokenizer=tokenizer)
 dataloader = DataLoader(dataset, batch_size=1) # test batch size=1
 
 bleu = load_metric('sacrebleu')
+rouge = load_metric('rouge')
 
 gts = []
 preds = []
@@ -45,3 +47,8 @@ for i, batch in tqdm(enumerate(dataloader)):
 
 bleu_scores = bleu.compute(predictions=preds, references=gts)['score']
 print("load_metric('sacrebleu')", bleu_scores)
+
+pred_for_rouge = ['\n'.join(nltk.sent_tokenize(pred[0].strip())) for pred in preds]
+gt_for_rouge = ['\n'.join(nltk.sent_tokenize(gt[0].strip())) for gt in gts]
+rouge_scores = rouge.compute(predictions=pred_for_rouge, references=gt_for_rouge, use_stemmer=True)
+print("load_metric('rouge'):", rouge_scores)
