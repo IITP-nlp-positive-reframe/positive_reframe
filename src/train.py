@@ -9,6 +9,7 @@ import os
 from tqdm import tqdm
 import wandb
 from dataset import PositiveDataset
+from datasets import load_metric
 
 from config import config
 
@@ -33,7 +34,9 @@ def main(config):
     
     # dataset
     dataset = PositiveDataset("/workspace/positive_reframe/data", phase='train', tokenizer=tokenizer)
+    val_dataset = PositiveDataset("/workspace/positive_reframe/data", phase='dev', tokenizer=tokenizer)
     dataloader = DataLoader(dataset, batch_size=config['batch_size'])
+    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'])
     
     # optimizer
     optim = AdamW(model.parameters(), lr=config['init_lr'])
@@ -49,8 +52,12 @@ def main(config):
             save_code=True
         )
 
+    # eval metric
+    bleu = load_metric("sacrebleu")
+
     # train
     for epoch in range(config['epochs']):
+        model.train()
         total_loss = 0
         batch_bar = tqdm(total=len(dataloader), dynamic_ncols=True, leave=False, position=0, desc='Train', ncols=5)
         for i, batch in tqdm(enumerate(dataloader)):
@@ -86,6 +93,31 @@ def main(config):
             model.save_pretrained(f"{config['save_path']}/{config['run_name']}")
 
         batch_bar.close()
+
+        # eval
+        if epoch % 5 == 0:
+            model.eval()
+            gts = []
+            preds = []
+            with torch.no_grad():
+                for i, val_batch in enumerate(val_loader):
+                    input_text = batch['original_text']
+                    label_text = batch['reframed_text']
+
+                    input_tokens = tokenizer(input_text, return_tensors='pt', max_length=128,truncation=True, padding='max_length')
+                    input_ids = input_tokens['input_ids'].to('cuda')
+
+                    output_ids = model.generate(input_ids, num_beams=config['num_beams'], min_length=0, max_length=128)
+                    output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+
+                    preds.append([output_text])
+                    gts.append(label_text) # ?? evaluate.py에 요상하게 해둠. 왜지
+                bleu_scores = bleu.compute(predictions=preds, references=gts)['score']
+                if config['wandb']:
+                    wandb.log({'bleu score': bleu_scores})
+                print("bleu score: ", bleu_scores)
+
+
 
 if __name__=='__main__':
     main(config)
