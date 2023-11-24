@@ -54,6 +54,7 @@ def main(config):
 
     # eval metric
     bleu = load_metric("sacrebleu")
+    best_val_score = 0
 
     # train
     for epoch in range(config['epochs']):
@@ -95,14 +96,14 @@ def main(config):
         batch_bar.close()
 
         # eval
-        if epoch % 5 == 0:
+        if epoch % 5 == 0 or epoch==config['epochs']-1:
             model.eval()
             gts = []
             preds = []
             with torch.no_grad():
                 for i, val_batch in enumerate(val_loader):
-                    input_text = batch['original_text']
-                    label_text = batch['reframed_text']
+                    input_text = val_batch['original_text']
+                    label_text = val_batch['reframed_text']
 
                     input_tokens = tokenizer(input_text, return_tensors='pt', max_length=128,truncation=True, padding='max_length')
                     input_ids = input_tokens['input_ids'].to('cuda')
@@ -111,11 +112,16 @@ def main(config):
                     output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
 
                     preds.append([output_text])
-                    gts.append(label_text) # ?? evaluate.py에 요상하게 해둠. 왜지
+                    gts.append([label_text[0]]) # ?? evaluate.py에 요상하게 해둠. 왜지
                 bleu_scores = bleu.compute(predictions=preds, references=gts)['score']
                 if config['wandb']:
                     wandb.log({'bleu score': bleu_scores})
                 print("bleu score: ", bleu_scores)
+                if bleu_scores > best_val_score:
+                    best_val_score = bleu_scores
+                    model.save_pretrained(f"{config['save_path']}/{config['run_name']}/best")
+                if epoch==config['epochs']-1:
+                    model.save_pretrained(f"{config['save_path']}/{config['run_name']}/last")
 
 
 
