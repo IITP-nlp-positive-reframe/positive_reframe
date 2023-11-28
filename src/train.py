@@ -26,9 +26,9 @@ def main(config):
     # model
     # TODO: change model to bart-large
     if config['pretrained_path'] is None:
-        model = BartForConditionalGeneration.from_pretrained("facebook/bart-large").to('cuda')
+        model = BartForConditionalGeneration.from_pretrained("facebook/bart-large").to(config['device'])
     else:
-        model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).to("cuda")
+        model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).to(config['device'])
     
     model.train()
     
@@ -43,6 +43,7 @@ def main(config):
 
     # wandb logging
     if config['wandb']:
+        wandb.login(key="a4685c36eca1cc5a3eb4745aab432b225d0ba421")
         wandb.init(
             name=config['run_name'],
             project='pos_reframing',
@@ -70,15 +71,18 @@ def main(config):
 
             # unconstrained
             input_tokens = tokenizer(input_text, return_tensors='pt', max_length=128,truncation=True, padding='max_length')
-            input_ids = input_tokens['input_ids'].to('cuda')
-            attention_mask = input_tokens['attention_mask'].to('cuda')
+            input_ids = input_tokens['input_ids'].to(config['device'])
+            attention_mask = input_tokens['attention_mask'].to(config['device'])
 
-            labels = tokenizer(label_text, return_tensors='pt', max_length=128, truncation=True, padding='max_length')['input_ids'][:,1:].to('cuda')
+            labels = tokenizer(label_text, return_tensors='pt', max_length=128, truncation=True, padding='max_length')['input_ids'].to(config['device'])
+            # [:,1:].to(config['device'])
             labels[labels==tokenizer.pad_token_id] = -100
+
+            # import pdb; pdb.set_trace()
 
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
             loss = outputs[0]
-            total_loss += loss
+            total_loss += loss.detach().float()
 
             batch_bar.set_postfix(
                 loss = "{:.04f}".format(float(total_loss / (i+1))),
@@ -106,7 +110,7 @@ def main(config):
                     label_text = val_batch['reframed_text']
 
                     input_tokens = tokenizer(input_text, return_tensors='pt', max_length=128,truncation=True, padding='max_length')
-                    input_ids = input_tokens['input_ids'].to('cuda')
+                    input_ids = input_tokens['input_ids'].to(config['device'])
 
                     output_ids = model.generate(input_ids, num_beams=config['num_beams'], min_length=0, max_length=128)
                     output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
