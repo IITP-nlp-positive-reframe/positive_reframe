@@ -20,7 +20,7 @@ def main(config):
     tokenizer = BartTokenizer.from_pretrained("facebook/bart-large")
 
     # not needed for unconstrained
-    # tokenizer.add_special_tokens({'additional_special_tokens': [config['strategy_token', 'ref_token']]})
+    # tokenizer.add_special_tokens({'additional_special_tokens': [config['strategy_token'], config['ref_token']]})
 
 
     # model
@@ -30,7 +30,7 @@ def main(config):
     else:
         model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).to(config['device'])
     
-    model.train()
+    # model.train()
     
     # dataset
     dataset = PositiveDataset("/workspace/positive_reframe/data", phase='train', tokenizer=tokenizer)
@@ -81,6 +81,7 @@ def main(config):
             # import pdb; pdb.set_trace()
 
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            import pdb; pdb.set_trace()
             loss = outputs[0]
             total_loss += loss.detach().float()
 
@@ -104,6 +105,9 @@ def main(config):
             model.eval()
             gts = []
             preds = []
+            eval_file_path = f"/workspace/positive_reframe/ckpt/{config['run_name']}/eval-{epoch}.txt"
+            with open(eval_file_path, 'w') as f:
+                f.close() 
             with torch.no_grad():
                 for i, val_batch in enumerate(val_loader):
                     input_text = val_batch['original_text']
@@ -113,10 +117,14 @@ def main(config):
                     input_ids = input_tokens['input_ids'].to(config['device'])
 
                     output_ids = model.generate(input_ids, num_beams=config['num_beams'], min_length=0, max_length=128)
-                    output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+                    output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
                     preds.append([output_text])
-                    gts.append([label_text[0]]) # ?? evaluate.py에 요상하게 해둠. 왜지
+                    gts.append([label_text]) # ?? evaluate.py에 요상하게 해둠. 왜지
+                    with open(eval_file_path,'a') as f:
+                        for idx in range(len(output_text)):
+                            f.write("pred: " + output_text[idx] + "\n" + "gt: " + label_text[idx] + "\n\n")
+
                 bleu_scores = bleu.compute(predictions=preds, references=gts)['score']
                 if config['wandb']:
                     wandb.log({'bleu score': bleu_scores})
