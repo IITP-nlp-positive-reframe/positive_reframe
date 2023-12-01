@@ -126,7 +126,7 @@ def main(config):
                     with open(eval_file_path,'a') as f:
                         for idx in range(len(output_text)):
                             f.write("input: " + input_text[idx] + "\npred: " + output_text[idx] + "\n" + "gt: " + label_text[idx] + "\n\n")
-
+                # bleu score input 확인. 이중리스트일 것으로 예상.
                 bleu_scores = bleu.compute(predictions=preds, references=gts)['score']
                 if config['wandb']:
                     wandb.log({'bleu score': bleu_scores})
