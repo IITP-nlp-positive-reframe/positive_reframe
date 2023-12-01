@@ -81,7 +81,7 @@ def main(config):
             # import pdb; pdb.set_trace()
 
             outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             loss = outputs[0]
             total_loss += loss.detach().float()
 
@@ -101,10 +101,11 @@ def main(config):
         batch_bar.close()
 
         # eval
-        if epoch % 5 == 0 or epoch==config['epochs']-1:
+        if epoch % 1 == 0 or epoch==config['epochs']-1:
             model.eval()
             gts = []
             preds = []
+            inputs = []
             eval_file_path = f"/workspace/positive_reframe/ckpt/{config['run_name']}/eval-{epoch}.txt"
             with open(eval_file_path, 'w') as f:
                 f.close() 
@@ -119,11 +120,12 @@ def main(config):
                     output_ids = model.generate(input_ids, num_beams=config['num_beams'], min_length=0, max_length=128)
                     output_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
+                    inputs.append([input_text])
                     preds.append([output_text])
                     gts.append([label_text]) # ?? evaluate.py에 요상하게 해둠. 왜지
                     with open(eval_file_path,'a') as f:
                         for idx in range(len(output_text)):
-                            f.write("pred: " + output_text[idx] + "\n" + "gt: " + label_text[idx] + "\n\n")
+                            f.write("input: " + input_text[idx] + "\npred: " + output_text[idx] + "\n" + "gt: " + label_text[idx] + "\n\n")
 
                 bleu_scores = bleu.compute(predictions=preds, references=gts)['score']
                 if config['wandb']:
