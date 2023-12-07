@@ -29,9 +29,7 @@ def main(config):
         model = BartForConditionalGeneration.from_pretrained("facebook/bart-large").to(config['device'])
     else:
         model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).to(config['device'])
-    
-    # model.train()
-    
+        
     # dataset
     dataset = PositiveDataset("/workspace/positive_reframe/data", phase='train', tokenizer=tokenizer)
     val_dataset = PositiveDataset("/workspace/positive_reframe/data", phase='dev', tokenizer=tokenizer)
@@ -101,7 +99,7 @@ def main(config):
         batch_bar.close()
 
         # eval
-        if epoch % 1 == 0 or epoch==config['epochs']-1:
+        if epoch % config['eval_every'] == 0 or epoch==config['epochs']-1:
             model.eval()
             gts = []
             preds = []

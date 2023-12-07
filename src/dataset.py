@@ -3,27 +3,6 @@ from torch.utils.data import Dataset, DataLoader
 import os
 import pandas as pd
 
-# class Dataset(Dataset):
-#     def __init__(self, root, phase):
-#         self.root = root
-#         self.phase = phase
-
-#         assert self.phase in ['train', 'dev', 'test']
-
-#         self.csv = pd.read_csv(os.path.join(self.root, f'{self.phase}.csv'))
-#         self.csv = dict(self.csv) # keys: original_text, reframed_text, strategy, original_with_label
-#         for key in self.csv:
-#             self.csv[key] = list(self.csv[key])
-            
-#     def __len__(self):
-#         return len(self.csv['original_text'])
-    
-#     def __getitem__(self, idx):
-#         original_text = self.csv['original_text'][idx]
-#         reframed_text = self.csv['reframed_text'][idx]
-#         strategy = self.csv['strategy'][idx]
-#         return original_text
-    
     
 class PositiveDataset(Dataset):
     def __init__(self, root, phase, tokenizer):
@@ -64,17 +43,6 @@ class PositiveDataset(Dataset):
             "reframed_text": reframed_text,
             "strategy": strategy
         }
-
-        # if self.exp_setting == 'unconstrained':
-        #     input_text = original_text
-        #     output_text = reframed_text
-        # elif self.exp_setting == 'controlled':
-        #     input_text = original_text+"<STRG>"+strategy
-        #     output_text = reframed_text
-        # elif self.exp_setting == 'predict':
-        #     input_text = original_text
-        #     output_text = "<STRG>"+strategy+"<REFR>"+reframed_text
-        # input_text = original_text
 
         return output
     

@@ -14,12 +14,10 @@ import numpy as np
 import evaluate
 
 # tokenizer
-# TODO: adjust tokenizer path to the same as model (bart-large/base...)
 tokenizer = BartTokenizer.from_pretrained("facebook/bart-large")
 tokenizer.add_special_tokens({'additional_special_tokens': [config['strategy_token'], config['ref_token']]})
 
 # model
-# TODO: change to bart-large
 model = BartForConditionalGeneration.from_pretrained(config['pretrained_path']).to(config['device'])
 model.eval()
 
@@ -61,20 +59,16 @@ with torch.no_grad():
 """
 # preds: ["sentence1", "sentence2", ...]
 # gts: [["sentence1"], ["sentence2"], ...] 
-#   -> bleu에 gt로 들어가는 건 이중 list 형태여야 함
-#   -> bertscore는 두가지 형태 다 가능이라고 함
-#   -> rouge 계산할 때는 flatten해야 함
+#   -> gt for bleu should be nested list
+#   -> bertscore accepts both nested list and list of strings
+#   -> for rouge, need to flatten these
 # inputs: ["sentence1", "sentence2", ...]
 """
 
 ### ROUGE
 pred_for_rouge = ['\n'.join(nltk.sent_tokenize(p.strip())) for p in preds]
 gt_for_rouge = ['\n'.join(nltk.sent_tokenize(g[0].strip())) for g in gts]
-# print("sanity check")
-# with open(eval_file_path.split(".")[0] + "_rouge.txt", 'w') as f:
-#     f.write(pred_for_rouge + "\n\n\n" + gt_for_rouge)
-# print(pred_for_rouge)
-# print(gt_for_rouge)
+
 rouge_scores = rouge.compute(predictions=pred_for_rouge, references=gt_for_rouge, use_stemmer=True)
 print("load_metric('rouge1'):", rouge_scores['rouge1'])
 print("load_metric('rouge2'):", rouge_scores['rouge2'])

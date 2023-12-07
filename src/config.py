@@ -9,6 +9,7 @@ config = {
     "batch_size": 32,
     "init_lr": 1e-4,
     "num_beams": 2, # only for evaluation (generate func.)
+    "eval_every": 1,
 
     "wandb": True,
     "pretrained_path": "/workspace/positive_reframe/ckpt/bart-large-one_epoch/best",
