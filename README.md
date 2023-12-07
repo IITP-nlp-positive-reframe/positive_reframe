@@ -28,6 +28,7 @@ It gives you BLEU score, Rouge scores, BERT score, and the difference in Text bl
 
 ### Example outputs
 Below are some sample outputs of trained models.
+For full outputs and evaluation scores, see `./test_eval_e{1|5}.txt`.
 - after **1 epoch**
 ```
 input: Always stressing and thinking about loads of things at once need I take it one at a time overload stressed need to rant
